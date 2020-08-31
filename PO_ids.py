@@ -10,19 +10,28 @@ import pandas as pd
 
 def main():
 
-    #Opens CDNO organism sample for nutrient composition.tsv in
-    # dataframe
+    #Opens input file CDNO organism sample for nutrient composition.tsv
+    # in a dataframe
     df = pd.read_csv(r"/Users/anoosha/GitHub/foodon-ids-update/CDNO.tsv",
                      sep="\t",skiprows = [1],encoding="utf-8")
 
-    #NCBITaxon_Ontofox.txt file
+    #Input file po_ontofox.txt
     f = open("/Users/anoosha/GitHub/foodon/src/ontology/imports"
              "/po_ontofox.txt", "r")
     lines = f.readlines()
 
-    #List to retrieve lines which contain NCBI_taxon ids in
-    # ncbitaxon_ontofox.txt
+    #Checks if PO id is present in column and assigns PO_id as key in
+    # dictionary and harvested_food_material as a value.
+    thisdict={}
+    for x in range(0, len(df['PO_term'])):
+        if "PO" in (df.loc[x, 'PO_term']):
+            thisdict[df.loc[x,"PO_term"]] = df.loc[x,
+                                             "harvested_food_material"]
+    print(thisdict)
+    print(len(thisdict))
+
     subject_id = []
+    counter=0
     for i in range(0,len(lines)):
         if "PO_" in lines[i] and " #" in lines[i]:
             subject = lines[i][lines[i].index("PO_"):lines[
@@ -30,40 +39,28 @@ def main():
                 " #")]
             subject = subject.replace("_", ":")
             subject_id.append(subject)
-            if "Top level source" in lines[i+3]:
+            if "[Top level source" in lines[i+2]:
                 counter=i+2
+
     f.close()
 
-    #Length of ncbi_taxon ids in NCBItaxon_ontofox.txt
-    print(len(subject_id))
-
-    #Dictionary have "taxon ids" as keys and "cultivated
-    # species as "values" from CDNO organism sample for nutrient
-    # composition.tsv
-    thisdict= pd.Series(df.cultivated_species.values,
-               index=df.taxon_id).to_dict()
-
     #Unmatched taxon ids between CDNO.tsv and ncbitaxon_ontofox.txt
-    print(len(set(thisdict.keys()) - set(subject_id)))
-    diff=set(thisdict.keys()) - set(subject_id)
+    diff = set(thisdict.keys()) - set(subject_id)
 
+    #Length of mismatched id's
+    print(len(diff))
 
-    #Write in file after substituting colons with underscores.
     f = open("/Users/anoosha/GitHub/foodon/src/ontology/imports"
              "/po_ontofox.txt", 'w')
-    for x in range(0,counter):
-        #f.write(lines[x])
-        print(lines[x])
-    URL= "http://purl.obolibrary.org/obo/"
+    for x in range(0, counter):
+        f.write(lines[x])
+    URL = "http://purl.obolibrary.org/obo/"
 
     for i in diff:
-        #f.write(URL+ i.replace(":", "_") + " # "+ thisdict[i] + "\n")
-        print(URL+ i.replace(":", "_") + " # "+ thisdict[i] + "\n")
-
-
-    for x in range(counter,len(lines)):
-        #f.write(lines[x])
-        print(lines[x])
+        f.write(URL + i.replace(":", "_") + " # " + thisdict[i] + "\n")
+    f.write("\n")
+    for x in range(counter, len(lines)):
+        f.write(lines[x])
     f.close()
 
 if __name__ == '__main__':
